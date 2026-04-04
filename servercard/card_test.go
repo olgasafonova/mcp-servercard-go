@@ -1,6 +1,7 @@
 package servercard_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
@@ -403,5 +404,37 @@ func TestAttachValidationError(t *testing.T) {
 	_, err := servercard.Attach(server, servercard.Options{})
 	if err == nil {
 		t.Fatal("expected error for empty options")
+	}
+}
+
+func TestAuthSchemesNormalization(t *testing.T) {
+	opts := minimalOpts()
+	opts.Remotes = []servercard.Remote{{
+		Type:           "streamable-http",
+		URL:            "/mcp",
+		Authentication: &servercard.Auth{Required: false, Schemes: nil},
+	}}
+
+	card := mustBuild(t, opts)
+	data, err := card.JSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Schemes should be [] not null in JSON (indented output has a space).
+	if bytes.Contains(data, []byte(`"schemes": null`)) {
+		t.Error("schemes serialized as null; should be empty array")
+	}
+	if !bytes.Contains(data, []byte(`"schemes": []`)) {
+		t.Errorf("schemes should be empty array; got: %s", string(data))
+	}
+}
+
+func TestWellKnownPathFor(t *testing.T) {
+	card := mustBuild(t, fullOpts())
+	got := servercard.WellKnownPathFor(card)
+	want := "/.well-known/mcp-server-card/io.github.olgasafonova/gleif-mcp-server"
+	if got != want {
+		t.Errorf("WellKnownPathFor = %q, want %q", got, want)
 	}
 }

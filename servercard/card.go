@@ -63,9 +63,18 @@ type Header struct {
 }
 
 // Auth describes authentication requirements for a remote.
+// Schemes is always serialized as a JSON array (never null).
 type Auth struct {
 	Required bool     `json:"required"`
 	Schemes  []string `json:"schemes"`
+}
+
+// Normalize ensures Schemes is never nil, so JSON output is always
+// "schemes":[] rather than "schemes":null.
+func (a *Auth) Normalize() {
+	if a.Schemes == nil {
+		a.Schemes = []string{}
+	}
 }
 
 // Capabilities mirrors the MCP ServerCapabilities shape.

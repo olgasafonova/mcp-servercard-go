@@ -5,6 +5,14 @@ import "net/http"
 // WellKnownPath is the standard endpoint for Server Card discovery.
 const WellKnownPath = "/.well-known/mcp-server-card"
 
+// WellKnownPathFor returns the per-server well-known path per SEP-2127.
+// Use when multiple MCP servers share the same origin:
+//
+//	mux.Handle(servercard.WellKnownPathFor(card), servercard.Handler(card))
+func WellKnownPathFor(card *ServerCard) string {
+	return WellKnownPath + "/" + card.Name
+}
+
 // Handler returns an http.Handler that serves the Server Card JSON
 // at any path (typically mounted at WellKnownPath).
 //
@@ -14,6 +22,9 @@ const WellKnownPath = "/.well-known/mcp-server-card"
 //   - Access-Control-Allow-Methods: GET
 //   - Access-Control-Allow-Headers: Content-Type
 //   - Cache-Control: public, max-age=3600
+//
+// The handler does not implement rate limiting. Callers should apply
+// rate limiting middleware as appropriate for their deployment.
 func Handler(card *ServerCard) http.Handler {
 	// Pre-serialize the card once; it's static.
 	data, err := card.JSON()

@@ -37,6 +37,13 @@ func Build(opts Options) (*ServerCard, error) {
 		Meta:         opts.Meta,
 	}
 
+	// Normalize Auth.Schemes to avoid null in JSON output.
+	for i := range card.Remotes {
+		if card.Remotes[i].Authentication != nil {
+			card.Remotes[i].Authentication.Normalize()
+		}
+	}
+
 	// Store provider info in _meta if provided.
 	if opts.Provider != nil {
 		if card.Meta == nil {
