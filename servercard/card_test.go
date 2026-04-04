@@ -53,8 +53,17 @@ func fullOpts() servercard.Options {
 	}
 }
 
+func mustBuild(t *testing.T, opts servercard.Options) *servercard.ServerCard {
+	t.Helper()
+	card, err := servercard.Build(opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return card
+}
+
 func TestBuildMinimal(t *testing.T) {
-	card := servercard.Build(minimalOpts())
+	card := mustBuild(t, minimalOpts())
 
 	if card.Schema != servercard.SchemaURL {
 		t.Errorf("Schema = %q, want %q", card.Schema, servercard.SchemaURL)
@@ -74,7 +83,7 @@ func TestBuildMinimal(t *testing.T) {
 }
 
 func TestBuildFull(t *testing.T) {
-	card := servercard.Build(fullOpts())
+	card := mustBuild(t, fullOpts())
 
 	if card.Title != "GLEIF MCP Server" {
 		t.Errorf("Title = %q", card.Title)
@@ -106,8 +115,67 @@ func TestBuildFull(t *testing.T) {
 	}
 }
 
+func TestBuildValidation(t *testing.T) {
+	tests := []struct {
+		name    string
+		opts    servercard.Options
+		wantErr string
+	}{
+		{
+			name:    "empty name",
+			opts:    servercard.Options{Version: "1.0.0", Description: "desc"},
+			wantErr: "name is required",
+		},
+		{
+			name:    "name without slash",
+			opts:    servercard.Options{Name: "no-slash", Version: "1.0.0", Description: "desc"},
+			wantErr: "exactly one forward slash",
+		},
+		{
+			name:    "name with two slashes",
+			opts:    servercard.Options{Name: "two/slashes/here", Version: "1.0.0", Description: "desc"},
+			wantErr: "exactly one forward slash",
+		},
+		{
+			name:    "empty version",
+			opts:    servercard.Options{Name: "io.test/server", Description: "desc"},
+			wantErr: "version is required",
+		},
+		{
+			name:    "empty description",
+			opts:    servercard.Options{Name: "io.test/server", Version: "1.0.0"},
+			wantErr: "description is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := servercard.Build(tt.opts)
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			if got := err.Error(); !contains(got, tt.wantErr) {
+				t.Errorf("error = %q, want substring %q", got, tt.wantErr)
+			}
+		})
+	}
+}
+
+func contains(s, sub string) bool {
+	return len(s) >= len(sub) && (s == sub || len(s) > 0 && containsAt(s, sub))
+}
+
+func containsAt(s, sub string) bool {
+	for i := 0; i <= len(s)-len(sub); i++ {
+		if s[i:i+len(sub)] == sub {
+			return true
+		}
+	}
+	return false
+}
+
 func TestJSON(t *testing.T) {
-	card := servercard.Build(minimalOpts())
+	card := mustBuild(t, minimalOpts())
 	data, err := card.JSON()
 	if err != nil {
 		t.Fatal(err)
@@ -134,7 +202,7 @@ func TestJSON(t *testing.T) {
 }
 
 func TestJSONFull(t *testing.T) {
-	card := servercard.Build(fullOpts())
+	card := mustBuild(t, fullOpts())
 	data, err := card.JSON()
 	if err != nil {
 		t.Fatal(err)
@@ -164,7 +232,7 @@ func TestJSONFull(t *testing.T) {
 }
 
 func TestHandlerGET(t *testing.T) {
-	card := servercard.Build(minimalOpts())
+	card := mustBuild(t, minimalOpts())
 	handler := servercard.Handler(card)
 
 	req := httptest.NewRequest(http.MethodGet, servercard.WellKnownPath, nil)
@@ -193,7 +261,7 @@ func TestHandlerGET(t *testing.T) {
 }
 
 func TestHandlerOPTIONS(t *testing.T) {
-	card := servercard.Build(minimalOpts())
+	card := mustBuild(t, minimalOpts())
 	handler := servercard.Handler(card)
 
 	req := httptest.NewRequest(http.MethodOptions, servercard.WellKnownPath, nil)
@@ -210,15 +278,19 @@ func TestHandlerOPTIONS(t *testing.T) {
 }
 
 func TestHandlerPOST(t *testing.T) {
-	card := servercard.Build(minimalOpts())
+	card := mustBuild(t, minimalOpts())
 	handler := servercard.Handler(card)
 
 	req := httptest.NewRequest(http.MethodPost, servercard.WellKnownPath, nil)
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
-	if rec.Result().StatusCode != http.StatusMethodNotAllowed {
-		t.Errorf("status = %d, want 405", rec.Result().StatusCode)
+	resp := rec.Result()
+	if resp.StatusCode != http.StatusMethodNotAllowed {
+		t.Errorf("status = %d, want 405", resp.StatusCode)
+	}
+	if allow := resp.Header.Get("Allow"); allow != "GET, OPTIONS" {
+		t.Errorf("Allow = %q, want %q", allow, "GET, OPTIONS")
 	}
 }
 
@@ -228,11 +300,13 @@ func TestRegisterResource(t *testing.T) {
 		Version: "1.0.0",
 	}, nil)
 
-	card := servercard.Build(minimalOpts())
+	card := mustBuild(t, minimalOpts())
 	servercard.RegisterResource(server, card)
 
 	// Verify the resource is accessible by listing resources through a session.
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
 	clientTransport, serverTransport := mcp.NewInMemoryTransports()
 
 	go func() { _ = server.Run(ctx, serverTransport) }()
@@ -296,7 +370,10 @@ func TestAttach(t *testing.T) {
 		Version: "1.0.0",
 	}, nil)
 
-	handler := servercard.Attach(server, fullOpts())
+	handler, err := servercard.Attach(server, fullOpts())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// HTTP handler should work.
 	req := httptest.NewRequest(http.MethodGet, servercard.WellKnownPath, nil)
@@ -314,5 +391,17 @@ func TestAttach(t *testing.T) {
 	}
 	if parsed["title"] != "GLEIF MCP Server" {
 		t.Errorf("title = %v", parsed["title"])
+	}
+}
+
+func TestAttachValidationError(t *testing.T) {
+	server := mcp.NewServer(&mcp.Implementation{
+		Name:    "test-server",
+		Version: "1.0.0",
+	}, nil)
+
+	_, err := servercard.Attach(server, servercard.Options{})
+	if err == nil {
+		t.Fatal("expected error for empty options")
 	}
 }

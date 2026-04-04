@@ -29,6 +29,7 @@ func Handler(card *ServerCard) http.Handler {
 			return
 		}
 		if r.Method != http.MethodGet {
+			w.Header().Set("Allow", "GET, OPTIONS")
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}

@@ -7,7 +7,9 @@ import (
 )
 
 // ResourceURI is the MCP resource URI for the Server Card.
-// SEP-2127 specifies that the card should also be available as an MCP resource.
+// SEP-2127 states the card should also be available as an MCP resource.
+// Note: the exact URI is not yet normative in the spec text; this value
+// follows the convention from the PR summary.
 const ResourceURI = "mcp://server-card.json"
 
 // RegisterResource adds the Server Card as an MCP resource on the server.
