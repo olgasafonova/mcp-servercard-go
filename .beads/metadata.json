@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "mcp_servercard_go",
+  "project_id": "c3315f02-e5e2-4937-90e4-1a3c687d8ce6"
+}
