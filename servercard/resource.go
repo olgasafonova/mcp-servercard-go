@@ -24,7 +24,7 @@ func RegisterResource(server *mcp.Server, card *ServerCard) {
 	server.AddResource(&mcp.Resource{
 		URI:         ResourceURI,
 		Name:        "MCP Server Card",
-		Description: "SEP-2127 Server Card describing this server's identity, transports, and capabilities.",
+		Description: "SEP-2127 Server Card describing this server's identity and transports.",
 		MIMEType:    "application/json",
 	}, func(_ context.Context, _ *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
 		return &mcp.ReadResourceResult{

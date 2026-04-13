@@ -4,7 +4,7 @@ Reference implementation of SEP-2127 MCP Server Cards for Go.
 
 Go library implementing [SEP-2127 MCP Server Cards](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127). Drop-in middleware for any [go-sdk](https://github.com/modelcontextprotocol/go-sdk) MCP server.
 
-A Server Card is a JSON document served at `/.well-known/mcp-server-card` that describes an MCP server before connection: identity, transports, capabilities, and authentication requirements. This enables pre-connect discovery without a full initialization handshake.
+A Server Card is a JSON document served at `/.well-known/mcp-server-card` that describes an MCP server before connection: identity, transports, protocol versions, and connection guidance. This enables pre-connect discovery without a full initialization handshake.
 
 ## Usage
 
@@ -30,12 +30,7 @@ cardHandler := servercard.Attach(server, servercard.Options{
     Remotes: []servercard.Remote{{
         Type: "streamable-http",
         URL:  "/mcp",
-        Authentication: &servercard.Auth{Required: false, Schemes: []string{}},
     }},
-    Capabilities: &servercard.Capabilities{
-        Tools:   &servercard.ToolsCap{ListChanged: false},
-        Prompts: &servercard.PromptsCap{ListChanged: false},
-    },
     Provider: &servercard.Provider{
         Name: "Olga Safonova",
         URL:  "https://github.com/olgasafonova",
@@ -53,6 +48,11 @@ mux.Handle(servercard.WellKnownPath, cardHandler)
 1. Builds a Server Card JSON document conforming to the SEP-2127 schema
 2. Serves it at `/.well-known/mcp-server-card` with correct CORS and caching headers
 3. Registers it as an MCP resource at `mcp://server-card.json` so connected clients can read it too. Note: PR #2443 (merged March 26) removed this endpoint from the spec; this feature may be deprecated in a future release.
+
+## What's new in v0.3.0
+
+- **Breaking:** Removed `Capabilities`, `Requires`, and `Authentication` fields to align with SEP-2127 scope reduction (capabilities and auth belong in `initialize`, not in static discovery)
+- Removed `Auth`, `Capabilities`, `Requires`, and all related sub-types
 
 ## What's new in v0.2.0
 

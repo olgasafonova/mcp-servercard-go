@@ -23,25 +23,16 @@ func Build(opts Options) (*ServerCard, error) {
 	}
 
 	card := &ServerCard{
-		Schema:       SchemaURL,
-		Name:         opts.Name,
-		Version:      opts.Version,
-		Description:  opts.Description,
-		Title:        opts.Title,
-		WebsiteURL:   opts.WebsiteURL,
-		Repository:   opts.Repository,
-		Icons:        opts.Icons,
-		Remotes:      opts.Remotes,
-		Capabilities: opts.Capabilities,
-		Requires:     opts.Requires,
-		Meta:         opts.Meta,
-	}
-
-	// Normalize Auth.Schemes to avoid null in JSON output.
-	for i := range card.Remotes {
-		if card.Remotes[i].Authentication != nil {
-			card.Remotes[i].Authentication.Normalize()
-		}
+		Schema:      SchemaURL,
+		Name:        opts.Name,
+		Version:     opts.Version,
+		Description: opts.Description,
+		Title:       opts.Title,
+		WebsiteURL:  opts.WebsiteURL,
+		Repository:  opts.Repository,
+		Icons:       opts.Icons,
+		Remotes:     opts.Remotes,
+		Meta:        opts.Meta,
 	}
 
 	// Store provider info in _meta if provided.

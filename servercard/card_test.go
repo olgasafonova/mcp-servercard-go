@@ -1,7 +1,6 @@
 package servercard_test
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"io"
@@ -40,12 +39,7 @@ func fullOpts() servercard.Options {
 				Type:                      "streamable-http",
 				URL:                       "https://gleif.example.com/mcp",
 				SupportedProtocolVersions: []string{"2025-03-12"},
-				Authentication:            &servercard.Auth{Required: false, Schemes: []string{}},
 			},
-		},
-		Capabilities: &servercard.Capabilities{
-			Tools:   &servercard.ToolsCap{ListChanged: false},
-			Prompts: &servercard.PromptsCap{ListChanged: false},
 		},
 		Provider: &servercard.Provider{
 			Name: "Olga Safonova",
@@ -78,8 +72,9 @@ func TestBuildMinimal(t *testing.T) {
 	if card.Title != "" {
 		t.Errorf("Title should be empty, got %q", card.Title)
 	}
-	if card.Capabilities != nil {
-		t.Error("Capabilities should be nil for minimal card")
+	// Minimal card should have no remotes.
+	if len(card.Remotes) != 0 {
+		t.Error("Remotes should be empty for minimal card")
 	}
 }
 
@@ -95,13 +90,6 @@ func TestBuildFull(t *testing.T) {
 	if card.Remotes[0].Type != "streamable-http" {
 		t.Errorf("Remote type = %q", card.Remotes[0].Type)
 	}
-	if card.Capabilities == nil || card.Capabilities.Tools == nil {
-		t.Fatal("Capabilities.Tools should not be nil")
-	}
-	if card.Capabilities.Resources != nil {
-		t.Error("Capabilities.Resources should be nil")
-	}
-
 	// Provider should be in _meta.
 	p, ok := card.Meta["provider"]
 	if !ok {
@@ -197,8 +185,8 @@ func TestJSON(t *testing.T) {
 	if _, ok := parsed["title"]; ok {
 		t.Error("title should be omitted for empty string")
 	}
-	if _, ok := parsed["capabilities"]; ok {
-		t.Error("capabilities should be omitted when nil")
+	if _, ok := parsed["remotes"]; ok {
+		t.Error("remotes should be omitted when empty")
 	}
 }
 
@@ -404,29 +392,6 @@ func TestAttachValidationError(t *testing.T) {
 	_, err := servercard.Attach(server, servercard.Options{})
 	if err == nil {
 		t.Fatal("expected error for empty options")
-	}
-}
-
-func TestAuthSchemesNormalization(t *testing.T) {
-	opts := minimalOpts()
-	opts.Remotes = []servercard.Remote{{
-		Type:           "streamable-http",
-		URL:            "/mcp",
-		Authentication: &servercard.Auth{Required: false, Schemes: nil},
-	}}
-
-	card := mustBuild(t, opts)
-	data, err := card.JSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Schemes should be [] not null in JSON (indented output has a space).
-	if bytes.Contains(data, []byte(`"schemes": null`)) {
-		t.Error("schemes serialized as null; should be empty array")
-	}
-	if !bytes.Contains(data, []byte(`"schemes": []`)) {
-		t.Errorf("schemes should be empty array; got: %s", string(data))
 	}
 }
 

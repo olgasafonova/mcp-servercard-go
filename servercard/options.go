@@ -31,13 +31,6 @@ type Options struct {
 	// Remotes describes HTTP-based transport endpoints.
 	Remotes []Remote
 
-	// Capabilities to advertise. If nil, the card will have no capabilities section.
-	// Use CapabilitiesFromServer to build this from registered tools/prompts/resources.
-	Capabilities *Capabilities
-
-	// Requires describes what the server needs from the client.
-	Requires *Requires
-
 	// Meta holds additional metadata.
 	Meta map[string]any
 
