@@ -1,14 +1,12 @@
 package servercard_test
 
 import (
-	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/olgasafonova/mcp-servercard-go/servercard"
 )
 
@@ -283,88 +281,12 @@ func TestHandlerPOST(t *testing.T) {
 	}
 }
 
-func TestRegisterResource(t *testing.T) {
-	server := mcp.NewServer(&mcp.Implementation{
-		Name:    "test-server",
-		Version: "1.0.0",
-	}, nil)
-
-	card := mustBuild(t, minimalOpts())
-	servercard.RegisterResource(server, card)
-
-	// Verify the resource is accessible by listing resources through a session.
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-
-	clientTransport, serverTransport := mcp.NewInMemoryTransports()
-
-	go func() { _ = server.Run(ctx, serverTransport) }()
-
-	client := mcp.NewClient(&mcp.Implementation{
-		Name:    "test-client",
-		Version: "1.0.0",
-	}, nil)
-	session, err := client.Connect(ctx, clientTransport, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = session.Close() }()
-
-	resources, err := session.ListResources(ctx, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	var found bool
-	for _, r := range resources.Resources {
-		if r.URI == servercard.ResourceURI {
-			found = true
-			if r.MIMEType != "application/json" {
-				t.Errorf("resource MIMEType = %q", r.MIMEType)
-			}
-			break
-		}
-	}
-	if !found {
-		t.Error("server card resource not found in resources list")
-	}
-
-	// Read the resource content.
-	result, err := session.ReadResource(ctx, &mcp.ReadResourceParams{
-		URI: servercard.ResourceURI,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(result.Contents) != 1 {
-		t.Fatalf("contents len = %d", len(result.Contents))
-	}
-	content := result.Contents[0]
-	if content.MIMEType != "application/json" {
-		t.Errorf("content MIMEType = %q", content.MIMEType)
-	}
-
-	var parsed map[string]any
-	if err := json.Unmarshal([]byte(content.Text), &parsed); err != nil {
-		t.Fatal("resource content is not valid JSON:", err)
-	}
-	if parsed["name"] != "io.github.test/minimal-server" {
-		t.Errorf("name = %v", parsed["name"])
-	}
-}
-
 func TestAttach(t *testing.T) {
-	server := mcp.NewServer(&mcp.Implementation{
-		Name:    "test-server",
-		Version: "1.0.0",
-	}, nil)
-
-	handler, err := servercard.Attach(server, fullOpts())
+	handler, err := servercard.Attach(fullOpts())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// HTTP handler should work.
 	req := httptest.NewRequest(http.MethodGet, servercard.WellKnownPath, nil)
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
@@ -384,12 +306,7 @@ func TestAttach(t *testing.T) {
 }
 
 func TestAttachValidationError(t *testing.T) {
-	server := mcp.NewServer(&mcp.Implementation{
-		Name:    "test-server",
-		Version: "1.0.0",
-	}, nil)
-
-	_, err := servercard.Attach(server, servercard.Options{})
+	_, err := servercard.Attach(servercard.Options{})
 	if err == nil {
 		t.Fatal("expected error for empty options")
 	}
