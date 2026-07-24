@@ -1,5 +1,8 @@
 # mcp-servercard-go
 
+![lint](https://github.com/olgasafonova/mcp-servercard-go/actions/workflows/lint.yml/badge.svg)
+<!-- CodeScene Code Health badge: add after onboarding repo at codescene.io -->
+
 Reference implementation of SEP-2127 MCP Server Cards for Go.
 
 Go library implementing [SEP-2127 MCP Server Cards](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127). Pure-stdlib HTTP handler; no MCP SDK dependency.
