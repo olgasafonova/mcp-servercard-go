@@ -1,7 +1,7 @@
 # mcp-servercard-go
 
 ![lint](https://github.com/olgasafonova/mcp-servercard-go/actions/workflows/lint.yml/badge.svg)
-<!-- CodeScene Code Health badge: add after onboarding repo at codescene.io -->
+[![CodeScene Average Code Health](https://codescene.io/projects/83042/status-badges/average-code-health)](https://codescene.io/projects/83042)
 
 Reference implementation of SEP-2127 MCP Server Cards for Go.
 
