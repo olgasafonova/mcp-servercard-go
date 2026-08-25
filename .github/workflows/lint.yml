@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - uses: golangci/golangci-lint-action@v8
+      - uses: golangci/golangci-lint-action@v9
       # Catches an // indirect drift before it reaches a consumer. This module
       # is imported by the server repos, so an untidy go.mod here propagates.
       - name: go mod tidy is clean
